@@ -25,17 +25,17 @@ class Riego:
             return None
 
     # Guardar datos en MySQL
-    def guardar_en_riego(self, hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion):
+    def guardar_en_riego(self, hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion,consumo):
         conexion = self.conectar_base_datos()
         if not conexion:
             print(" No hay conexión, guardando en SD...")
-            self.guardar_en_sd(hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion)
+            self.guardar_en_sd(hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion,consumo)
             return
 
         try:
             cursor = conexion.cursor()
-            sql = "INSERT INTO registro_riego (hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion) VALUES (%s, %s, %s, %s, %s)"
-            valores = (hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion)
+            sql = "INSERT INTO registro_riego (hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion,consumo_agua) VALUES (%s, %s, %s, %s, %s,%s)"
+            valores = (hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion,consumo)
             cursor.execute(sql, valores)
             conexion.commit()
             print("!! Datos guardados en MySQL.")
@@ -45,10 +45,10 @@ class Riego:
             conexion.close()
 
     # Guardar datos en SD
-    def guardar_en_sd(self, hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion):
+    def guardar_en_sd(self, hora_inicio, hora_fin, humedad_inicio, humedad_fin, duracion,consumo):
         try:
             with open(self.archivo_sd, "a") as archivo:
-                archivo.write(f"{hora_inicio},{hora_fin},{humedad_inicio},{humedad_fin},{duracion}\n")
+                archivo.write(f"{hora_inicio},{hora_fin},{humedad_inicio},{humedad_fin},{duracion},{consumo}\n")
             print("Datos guardados en SD.")
         except Exception as e:
             print(f"Error al guardar en SD: {e}")

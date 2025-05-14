@@ -52,6 +52,13 @@ class RedNeuronal(threading.Thread):
     
     def regar(self):
         """ Mantiene el riego activado hasta que la humedad alcance el umbral o pase el tiempo límite """
+        try:
+            datos_sensores = self.datos_cola.get(timeout=5)
+            temp_amb,humedad_amb, humedad_suelo = map(float, datos_sensores.split(","))
+        except queue.Empty:
+            print("No se recibieron datos para iniciar el riego. Abortando.")
+            return
+    
         inicio = datetime.now()
         self.comunicacion.enviar_datos("ON")
         print("Riego activado")
@@ -60,9 +67,9 @@ class RedNeuronal(threading.Thread):
             try:
                 # Leer los datos de la cola
                 datos_sensores = self.datos_cola.get(timeout=1)  # Espera hasta 1 segundo para recibir datos
-                humedad_suelo, temp_amb, _ = map(float, datos_sensores.split(","))
+                temp_amb,humedad_amb,humedad_suelo= map(float, datos_sensores.split(","))
 
-                if humedad_suelo >= 55 or (datetime.now() - inicio).seconds >= 2400:
+                if humedad_suelo >= 55 or (datetime.now() - inicio).seconds >= 2400 or self.evaluar_riego(humedad_suelo,temp_amb)<0:
                     self.detener_riego()
                     break
 
@@ -74,12 +81,14 @@ class RedNeuronal(threading.Thread):
         # Guardar datos en MySQL
         fin = datetime.now()
         duracion = (fin - inicio).seconds
-        self.riego.guardar_en_riego(inicio, fin, humedad_suelo, humedad_suelo, duracion)
+        consumo=float((duracion/3600)*(3*2.2*249))
+        print(consumo)
+        self.riego.guardar_en_riego(inicio, fin, humedad_suelo, humedad_suelo, duracion,consumo)
     
 
     def run(self):
         print("Red neuronal en funcion")
-        while not self.ejecutando.is_set():
+        while self.activo.is_set():
             try:
                 datos_sensores = self.datos_cola.get(timeout=1)
                 humedad_suelo, temp_amb, _ = map(float, datos_sensores.split(","))

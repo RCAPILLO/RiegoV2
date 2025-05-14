@@ -18,7 +18,7 @@ class VentanaProgramarRiego(tk.Frame):
         #self.red_neuronal = red_neuronal
         #self.datos_cola = datos_cola
         self.controller.title("Sistema de Riego v.1")
-        self.controller.geometry("500x400")
+        self.controller.geometry("700x700")
         self.miframe = tk.Frame(self, width=500, height=400)
         self.miframe.pack()
         # 📌 Instanciar conexión con la base de datos

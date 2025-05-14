@@ -7,7 +7,7 @@ class VentanaInicio(tk.Frame):
         super().__init__(parent)
         self.controller = controller
         self.controller.title("Sistema de riego V.1")
-        self.controller.geometry("500x500")
+        self.controller.geometry("700x700")
         self.controller.iconbitmap("Imagenes/LogoRiegoV1.ico")
         self.controller.resizable(0, 0)
 
@@ -45,7 +45,7 @@ class VentanaInicio(tk.Frame):
         mensaje_olvide.bind("<Button-1>", self.recuperar_contraseña)
 
         # Botón de Cancelar
-        cancelar =tk. Button(self.miframe, text="Cancelar", width=12, height=1, font=("Arial", 14), bg="lightblue", command=self.cancelar, cursor="hand2")
+        cancelar =tk. Button(self.miframe, text="Salir", width=12, height=1, font=("Arial", 14), bg="lightblue", command=self.cancelar, cursor="hand2")
         cancelar.place(x=180, y=350)
 
     # Conexión a la base de datos MySQL
@@ -89,12 +89,6 @@ class VentanaInicio(tk.Frame):
 
     def cancelar(self):
         print("Cancelando y cerrando todo...")
-
-        
-        # Cancelar actualizaciones por `after` si existen
-        if hasattr(self, 'after_id'):
-            self.master.after_cancel(self.after_id)
-
         # Cerrar aplicación completa
         self.controller.destroy()
 

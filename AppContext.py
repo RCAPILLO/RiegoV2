@@ -9,7 +9,7 @@ class AppContext:
         self.datos_cola = Queue()
         self.datos_arduino = Comunicacion(self.datos_cola)
         self.datos_arduino.conexion_serial()
-
+        self.comunicacion = None
         self.riego = Riego("localhost", "root", "", "sistema_riego")
 
         # Red neuronal aún no se inicia
@@ -37,3 +37,12 @@ class AppContext:
 
     def ia_esta_activa(self):
         return self.red_neuronal and self.red_neuronal.activo.is_set()
+    
+    def detener_todo(self):
+        if hasattr(self, "arduino") and self.arduino:
+            self.arduino.close()
+
+        if hasattr(self, "hilo_red_neuronal") and self.hilo_red_neuronal.is_alive():
+            self.hilo_red_neuronal.detener()  # Debes definir un método seguro de parada
+
+        print("Recursos liberados correctamente.")

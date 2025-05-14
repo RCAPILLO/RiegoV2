@@ -1,6 +1,7 @@
 import tkinter as tk
-from Pantallas.informes import mostrar_pantalla_informes  # Importa la función para mostrar los informes
 import queue
+import tkinter.messagebox as messagebox
+import mysql.connector
 class VentanaMonitorRiego(tk.Frame):
     def __init__(self, parent, controller,context):
         super().__init__(parent)
@@ -12,9 +13,8 @@ class VentanaMonitorRiego(tk.Frame):
         self.after_id = None  # Para controlar el .after
         self.modo_manual_activo = False 
         self.controller.title("Monitor de Riego")
-        self.controller.geometry("700x550")
+        self.controller.geometry("700x700")
         
-
         self.miframe = tk.Frame(self, width=600, height=450)
         self.miframe.pack()
 
@@ -41,8 +41,6 @@ class VentanaMonitorRiego(tk.Frame):
         self.temperatura_label.place(x=360, y=280)
         
         self.label_modo_manual = tk.Label(self, text="Modo Manual Activado", font=("Comic Sans MS", 12), fg="blue")
-        
-
         self.boton_cerrar_valvula = tk.Button(self, text="Cerrar Válvula", font=("Comic Sans MS", 12), bg="gray",
                                       command=self.cerrar_valvula_manual)
         
@@ -53,13 +51,13 @@ class VentanaMonitorRiego(tk.Frame):
         self.boton_modo_manual.place(x=20, y=340)
         self.boton_stop=tk.Button(self.miframe, text="Stop", font=("Comic Sans MS", 16), width=10, bg="red",
                command=self.detener)
-        self.boton_stop.place(x=160, y=340)
+        self.boton_stop.place(x=140, y=340)
         self.boton_alarmas=tk.Button(self.miframe, text="Alarmas", font=("Comic Sans MS", 16), width=10, bg="orange",
                command=self.alarmas)
         self.boton_alarmas.place(x=300, y=340)
         self.boton_informes=tk.Button(self.miframe, text="Informes", font=("Comic Sans MS", 16), width=10, bg="green",
                command=self.abrir_informes)
-        self.boton_informes.place(x=440, y=340)
+        self.boton_informes.place(x=480, y=340)
 
         self.conexion_label =tk.Label(self.miframe, text="Verificando conexión...", font=("Comic Sans MS", 12))
         self.conexion_label.place(x=20, y=400)
@@ -98,28 +96,57 @@ class VentanaMonitorRiego(tk.Frame):
 
     def detener(self):
         print("Cancelando y cerrando todo...")
+        self.controller.mostrar_pantalla("VentanaPrincipal")
 
-        # Detener hilo de la red neuronal si está activo
-        if hasattr(self.context, 'red_neuronal') and self.context.red_neuronal:
-            self.context.red_neuronal.detener_riego()
-
-        # Detener hilo de lectura de Arduino
-        if hasattr(self.context, 'datos_arduino') and self.context.datos_arduino:
-            self.context.datos_arduino.detener_hilo()
-            self.context.datos_arduino.enviar_datos("OFF")
-            self.context.datos_arduino.desconectar()
-
-        # Cancelar actualizaciones por `after` si existen
-        if hasattr(self, 'after_id'):
-            self.master.after_cancel(self.after_id)
-        self.controller.mostrar_pantalla("VentanaInicio")
 
 
     def alarmas(self):
         print("Mostrando alarmas")
 
+        try:
+            conn = mysql.connector.connect(
+                host='localhost',
+                user='root',
+                password='',
+                database='sistema_riego'
+            )
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT humedad_promedio, duracion 
+                FROM registro_riego 
+                ORDER BY hora_inicio DESC 
+                LIMIT 1
+            """)
+            resultado = cursor.fetchone()
+            conn.close()
+
+            if resultado is None:
+                messagebox.showinfo("Sin registros", "No se encontraron datos en la base de datos.")
+                return
+
+            humedad_actual = float(resultado[0])
+            tiempo_riego_minutos = float(resultado[1]/3600)
+
+            mensajes = []
+
+            if humedad_actual > 85:
+                mensajes.append(f"Humedad alta detectada: {humedad_actual:.1f}%")
+
+            if tiempo_riego_minutos > 40:
+                mensajes.append(f"Riego apagado por exceder los 40 minutos ({tiempo_riego_minutos:.1f} min)")
+
+            if mensajes:
+                mensaje_final = "\n".join(mensajes)
+                messagebox.showwarning("Alarma de Riego", mensaje_final)
+            else:
+                messagebox.showinfo("Estado del Sistema", "No se detectaron alarmas.")
+
+        except mysql.connector.Error as err:
+            messagebox.showerror("Error de conexión", f"No se pudo acceder a la base de datos:\n{err}")
+
+
     def abrir_informes(self):
-        self.controller.mostrar_pantalla("Informes")
+        self.controller.mostrar_pantalla("VentanaInformes")
 
     def actualizar_datos(self):
         try:

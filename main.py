@@ -4,6 +4,7 @@ from Pantallas.inicio import VentanaInicio
 from Pantallas.principal import VentanaPrincipal
 from Pantallas.programarRiego import VentanaProgramarRiego
 from Pantallas.monitorRiego import VentanaMonitorRiego
+from Pantallas.informes import VentanaInformes
 
 class Aplicacion(tk.Tk):
     def __init__(self):
@@ -38,6 +39,8 @@ class Aplicacion(tk.Tk):
                 pantalla = VentanaProgramarRiego(self.contenedor, self)
             elif nombre == "VentanaMonitorRiego":
                 pantalla = VentanaMonitorRiego(self.contenedor, self, self.context)
+            elif nombre=="VentanaInformes":
+                pantalla=VentanaInformes(self.contenedor,self)
             else:
                 return
             self.pantallas[nombre] = pantalla
@@ -48,6 +51,22 @@ class Aplicacion(tk.Tk):
         self.cargar_pantalla_si_no_existe(nombre_pantalla)
         pantalla = self.pantallas[nombre_pantalla]
         pantalla.tkraise()
+    
+    def cierre_seguro(self):
+        print("Cerrando aplicación de forma segura...")
+
+        # 1. Detener la red neuronal
+        if self.context.red_neuronal:
+            self.context.red_neuronal.detener()
+            self.context.red_neuronal.join()  # <--- Espera a que el hilo termine
+
+        # 2. Detener la comunicación serial
+        if self.context.comunicacion:
+            self.context.comunicacion.señal.clear()
+            self.context.comunicacion.desconectar()
+
+        self.destroy()
+
 
 
 def main():

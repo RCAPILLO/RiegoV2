@@ -9,7 +9,7 @@ class VentanaPrincipal(tk.Frame):
         self.controller = controller
         self.context=context
         self.controller.title("Sistema de Riego v.1")
-        self.controller.geometry("500x500")
+        self.controller.geometry("700x700")
 
         # Obtener contexto compartido
         context = self.controller.context
@@ -79,8 +79,30 @@ class VentanaPrincipal(tk.Frame):
 
 
     def salir(self):
-        self.detener_actualizacion()
-        self.controller.mostrar_pantalla("VentanaInicio")
+        try:
+            self.detener_actualizacion()
+            print("Cancelando y cerrando todo...")
+
+            if hasattr(self.context, 'red_neuronal') and self.context.red_neuronal:
+                self.context.red_neuronal.detener_riego()
+
+            if hasattr(self.context, 'datos_arduino') and self.context.datos_arduino:
+                self.context.datos_arduino.enviar_datos("OFF")
+                self.context.datos_arduino.detener_hilo()
+                self.context.datos_arduino.desconectar()
+
+            if hasattr(self, 'hilo_redneurona') and self.hilo_redneurona and self.hilo_redneurona.is_alive():
+                self.hilo_redneurona.join(timeout=2)
+
+            if hasattr(self, 'hilo_comunicacion') and self.hilo_comunicacion and self.hilo_comunicacion.is_alive():
+                self.hilo_comunicacion.join(timeout=2)
+
+            # Destruir la ventana principal de forma segura
+            self.winfo_toplevel().destroy()
+
+        except Exception as e:
+            print(f"Error al salir: {e}")
+
 
     def actualizar_datos(self):
         try:
