@@ -83,26 +83,25 @@ class VentanaPrincipal(tk.Frame):
             self.detener_actualizacion()
             print("Cancelando y cerrando todo...")
 
-            if hasattr(self.context, 'red_neuronal') and self.context.red_neuronal:
+            # Detener IA y comunicación si están activas
+            if self.context.red_neuronal:
                 self.context.red_neuronal.detener_riego()
-
-            if hasattr(self.context, 'datos_arduino') and self.context.datos_arduino:
+            if self.context.datos_arduino:
                 self.context.datos_arduino.enviar_datos("OFF")
                 self.context.datos_arduino.detener_hilo()
                 self.context.datos_arduino.desconectar()
 
-            if hasattr(self, 'hilo_redneurona') and self.hilo_redneurona and self.hilo_redneurona.is_alive():
+            # Detener hilos si existen
+            if hasattr(self, 'hilo_redneurona') and self.hilo_redneurona.is_alive():
                 self.hilo_redneurona.join(timeout=2)
-
-            if hasattr(self, 'hilo_comunicacion') and self.hilo_comunicacion and self.hilo_comunicacion.is_alive():
+            if hasattr(self, 'hilo_comunicacion') and self.hilo_comunicacion.is_alive():
                 self.hilo_comunicacion.join(timeout=2)
 
-            # Destruir la ventana principal de forma segura
-            self.winfo_toplevel().destroy()
+            # Llama al método seguro de cierre en la aplicación
+            self.controller.cierre_seguro()
 
         except Exception as e:
             print(f"Error al salir: {e}")
-
 
     def actualizar_datos(self):
         try:
