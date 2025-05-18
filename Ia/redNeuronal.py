@@ -54,7 +54,7 @@ class RedNeuronal(threading.Thread):
         """ Mantiene el riego activado hasta que la humedad alcance el umbral o pase el tiempo límite """
         try:
             datos_sensores = self.datos_cola.get(timeout=5)
-            temp_amb,humedad_amb, humedad_suelo = map(float, datos_sensores.split(","))
+            temp_amb,humedad_amb, humedad_inicio = map(float, datos_sensores.split(","))
         except queue.Empty:
             print("No se recibieron datos para iniciar el riego. Abortando.")
             return
@@ -63,16 +63,23 @@ class RedNeuronal(threading.Thread):
         self.comunicacion.enviar_datos("ON")
         print("Riego activado")
 
+        humedad_fin = humedad_inicio  # valor por defecto
+
         while self.ejecutando.is_set():
             try:
                 # Leer los datos de la cola
                 datos_sensores = self.datos_cola.get(timeout=1)  # Espera hasta 1 segundo para recibir datos
                 temp_amb,humedad_amb,humedad_suelo= map(float, datos_sensores.split(","))
-
-                if humedad_suelo >= 55 or (datetime.now() - inicio).seconds >= 2400 or self.evaluar_riego(humedad_suelo,temp_amb)<0:
+                humedad_fin = humedad_suelo  # se actualiza en cada iteración
+                estado_riego=self.evaluar_riego(humedad_suelo,temp_amb)#Revisar que valor devuelve la red neuronal
+                print(f"Estado NN: {estado_riego}, Humedad: {humedad_suelo}")
+                
+                # Condiciones de parada: humedad >= 55% o tiempo > 40 minutos o NN indica apagar
+                tiempo_transcurrido = (datetime.now() - inicio).seconds
+                if humedad_suelo >= 55 or tiempo_transcurrido >= 2400 or not estado_riego:
                     self.detener_riego()
                     break
-
+                
                 time.sleep(10)  # Revisar cada 10 segundos
 
             except queue.Empty:
@@ -82,8 +89,7 @@ class RedNeuronal(threading.Thread):
         fin = datetime.now()
         duracion = (fin - inicio).seconds
         consumo=float((duracion/3600)*(3*2.2*249))
-        print(consumo)
-        self.riego.guardar_en_riego(inicio, fin, humedad_suelo, humedad_suelo, duracion,consumo)
+        self.riego.guardar_en_riego(inicio, fin, humedad_inicio, humedad_fin, duracion,consumo)
     
 
     def run(self):
